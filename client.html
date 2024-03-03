@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Auction Client</title>
+  <script>
+    let socket;
+
+    function connect() {
+      const messageBox = document.getElementById("messages");
+      const clientId = Math.floor(Math.random() * 1000); // Generating a random client ID
+      socket = new WebSocket(`ws://localhost:8000/ws/${clientId}`);
+
+      socket.onopen = function (e) {
+        console.log("Connected to the auction!");
+        messageBox.innerHTML += `<p>Connected to the auction as client ${clientId}!</p>`;
+      };
+
+      socket.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        if (data.event === "new_bid") {
+          displayBid(data.bid);
+        } else if (data.event === "auction_end") {
+          displayAuctionEnd(data.bid);
+        }
+      };
+
+      socket.onclose = function (event) {
+        if (event.wasClean) {
+          console.log(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+          messageBox.innerHTML += `<p>Connection closed cleanly, code=${event.code}, reason=${event.reason}</p>`;
+        } else {
+          // e.g., server process killed or network down
+          console.log('Connection died');
+          messageBox.innerHTML += `<p>Connection died</p>`;
+        }
+      };
+
+      socket.onerror = function (error) {
+        console.error(`[error] ${error.message}`);
+        messageBox.innerHTML += `<p>[error] ${error.message}</p>`;
+      };
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.close();
+      }
+    }
+
+    function sendBid() {
+      const name = document.getElementById("name").value;
+      const bidValue = parseFloat(document.getElementById("bidValue").value);
+      const bid = JSON.stringify({ name: name, value: bidValue });
+      socket.send(bid);
+    }
+
+    function displayBid(bid) {
+      const messageBox = document.getElementById("messages");
+      messageBox.innerHTML += `<p>New bid of ${bid.value} by ${bid.name}</p>`;
+    }
+
+    function displayAuctionEnd(bid) {
+      const messageBox = document.getElementById("messages");
+      messageBox.innerHTML += `<p>Auction ended. Winner is ${bid.name} with a bid of ${bid.value}</p>`;
+    }
+  </script>
+</head>
+
+<body>
+  <h2>Auction Client</h2>
+  <button onclick="connect()">Connect</button>
+  <button onclick="disconnect()">Disconnect</button>
+  <div>
+    <label for="name">Name:</label>
+    <input type="text" id="name">
+    <label for="bidValue">Bid Value:</label>
+    <input type="text" id="bidValue">
+    <button onclick="sendBid()">Place Bid</button>
+  </div>
+  <div id="messages"></div>
+</body>
+
+</html>
