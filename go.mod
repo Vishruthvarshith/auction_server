@@ -1,4 +1,4 @@
-module auction_house
+module auction_server
 
 go 1.21.7
 
